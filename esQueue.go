@@ -3,7 +3,6 @@ package queue
 
 import (
 	"fmt"
-	"runtime"
 	"sync/atomic"
 )
 
@@ -82,13 +81,13 @@ func (q *EsQueue) Put(val interface{}) (ok bool, quantity uint32) {
 	}
 
 	if posCnt >= capMod-1 {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return false, posCnt
 	}
 
 	putPosNew = putPos + 1
 	if !atomic.CompareAndSwapUint32(&q.putPos, putPos, putPosNew) {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return false, posCnt
 	}
 
@@ -102,7 +101,8 @@ func (q *EsQueue) Put(val interface{}) (ok bool, quantity uint32) {
 			atomic.AddUint32(&cache.putNo, q.capaciity)
 			return true, posCnt + 1
 		} else {
-			runtime.Gosched()
+			// runtime.Gosched()
+			return false, posCnt
 		}
 	}
 }
@@ -122,7 +122,7 @@ func (q *EsQueue) Puts(values []interface{}) (puts, quantity uint32) {
 	}
 
 	if posCnt >= capMod-1 {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return 0, posCnt
 	}
 
@@ -134,7 +134,7 @@ func (q *EsQueue) Puts(values []interface{}) (puts, quantity uint32) {
 	putPosNew = putPos + putCnt
 
 	if !atomic.CompareAndSwapUint32(&q.putPos, putPos, putPosNew) {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return 0, posCnt
 	}
 
@@ -148,7 +148,8 @@ func (q *EsQueue) Puts(values []interface{}) (puts, quantity uint32) {
 				atomic.AddUint32(&cache.putNo, q.capaciity)
 				break
 			} else {
-				runtime.Gosched()
+				// runtime.Gosched()
+				return 0, posCnt
 			}
 		}
 	}
@@ -171,13 +172,13 @@ func (q *EsQueue) Get() (val interface{}, ok bool, quantity uint32) {
 	}
 
 	if posCnt < 1 {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return nil, false, posCnt
 	}
 
 	getPosNew = getPos + 1
 	if !atomic.CompareAndSwapUint32(&q.getPos, getPos, getPosNew) {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return nil, false, posCnt
 	}
 
@@ -192,7 +193,8 @@ func (q *EsQueue) Get() (val interface{}, ok bool, quantity uint32) {
 			atomic.AddUint32(&cache.getNo, q.capaciity)
 			return val, true, posCnt - 1
 		} else {
-			runtime.Gosched()
+			// runtime.Gosched()
+			return nil, false, posCnt
 		}
 	}
 }
@@ -212,7 +214,7 @@ func (q *EsQueue) Gets(values []interface{}) (gets, quantity uint32) {
 	}
 
 	if posCnt < 1 {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return 0, posCnt
 	}
 
@@ -224,7 +226,7 @@ func (q *EsQueue) Gets(values []interface{}) (gets, quantity uint32) {
 	getPosNew = getPos + getCnt
 
 	if !atomic.CompareAndSwapUint32(&q.getPos, getPos, getPosNew) {
-		runtime.Gosched()
+		// runtime.Gosched()
 		return 0, posCnt
 	}
 
@@ -239,7 +241,8 @@ func (q *EsQueue) Gets(values []interface{}) (gets, quantity uint32) {
 				getNo = atomic.AddUint32(&cache.getNo, q.capaciity)
 				break
 			} else {
-				runtime.Gosched()
+				// runtime.Gosched()
+				return 0, posCnt
 			}
 		}
 	}
