@@ -1,4 +1,4 @@
-package q
+package queue
 
 /*
  @File : lock_free_queue.go
