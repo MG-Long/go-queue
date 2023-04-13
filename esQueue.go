@@ -46,8 +46,8 @@ type slot struct {
 	value interface{}
 }
 
-// LFQueue An bounded lock free Queue
-type LFQueue struct {
+// EsQueue An bounded lock free Queue
+type EsQueue struct {
 	capacity uint32 // const after init, always 2's power
 	capMod   uint32 // cap - 1, const after init
 	putPos   *atomic.Uint32
@@ -57,11 +57,11 @@ type LFQueue struct {
 
 // NewQueue alloc a fixed size of cap Queue
 // and do some essential init
-func NewQueue(cap uint32) *LFQueue {
+func NewQueue(cap uint32) *EsQueue {
 	if cap < 1 {
 		cap = MinCap
 	}
-	q := new(LFQueue)
+	q := new(EsQueue)
 	q.capacity = minRoundNumBy2(cap)
 	q.capMod = q.capacity - 1
 	q.putPos = atomic.NewUint32(0)
@@ -84,18 +84,18 @@ func NewQueue(cap uint32) *LFQueue {
 }
 
 // Info return the summary info of queue
-func (q *LFQueue) Info() string {
+func (q *EsQueue) Info() string {
 	return fmt.Sprintf("Queue{capacity: %v, capMod: %v, putPos: %v, getPos: %v}",
 		q.capacity, q.capMod, q.putPos.Load(), q.getPos.Load())
 }
 
 // Capacity max capacity
-func (q *LFQueue) Capacity() uint32 {
+func (q *EsQueue) Capacity() uint32 {
 	return q.capacity
 }
 
 // Count Current count, maybe changed every moment
-func (q *LFQueue) Count() uint32 {
+func (q *EsQueue) Count() uint32 {
 	getPos := q.getPos.Load()
 	putPos := q.putPos.Load()
 	return q.posCount(getPos, putPos)
@@ -104,7 +104,7 @@ func (q *LFQueue) Count() uint32 {
 // Put May failed if lock slot failed or full
 // caller should retry if failed
 // should not put nil for normal logic
-func (q *LFQueue) Put(val interface{}) (ok bool, count uint32) {
+func (q *EsQueue) Put(val interface{}) (ok bool, count uint32) {
 	getPos := q.getPos.Load()
 	putPos := q.putPos.Load()
 
@@ -154,7 +154,7 @@ func (q *LFQueue) Put(val interface{}) (ok bool, count uint32) {
 
 // Get May failed if lock slot failed or empty
 // caller should retry if failed, val nil also means false
-func (q *LFQueue) Get() (val interface{}, ok bool, count uint32) {
+func (q *EsQueue) Get() (val interface{}, ok bool, count uint32) {
 	getPos := q.getPos.Load()
 	putPos := q.putPos.Load()
 
@@ -206,7 +206,7 @@ func (q *LFQueue) Get() (val interface{}, ok bool, count uint32) {
 
 // RetryPut Retry max retry times to put val to queue
 // Each interval will sleep a short time, current is 3 millisecond
-func (q *LFQueue) RetryPut(val interface{}, retry uint32) (ok bool, count uint32) {
+func (q *EsQueue) RetryPut(val interface{}, retry uint32) (ok bool, count uint32) {
 	if retry == 0 {
 		return false, q.Count()
 	}
@@ -220,7 +220,7 @@ func (q *LFQueue) RetryPut(val interface{}, retry uint32) (ok bool, count uint32
 
 // RetryGet Retry max retry times to get val from queue
 // Each interval will sleep a short time, current is 3 millisecond
-func (q *LFQueue) RetryGet(retry uint32) (val interface{}, ok bool, count uint32) {
+func (q *EsQueue) RetryGet(retry uint32) (val interface{}, ok bool, count uint32) {
 	if retry == 0 {
 		return nil, false, q.Count()
 	}
@@ -234,7 +234,7 @@ func (q *LFQueue) RetryGet(retry uint32) (val interface{}, ok bool, count uint32
 
 // Gets one time get at most N val from queue
 // Storage Array values should be init to fixed size
-func (q *LFQueue) Gets(values []interface{}) (gets, count uint32) {
+func (q *EsQueue) Gets(values []interface{}) (gets, count uint32) {
 	getPos := q.getPos.Load()
 	putPos := q.putPos.Load()
 
@@ -275,7 +275,7 @@ func (q *LFQueue) Gets(values []interface{}) (gets, count uint32) {
 
 // Puts one time put at most N val to queue
 // Storage Array values should carry N val
-func (q *LFQueue) Puts(values []interface{}) (puts, count uint32) {
+func (q *EsQueue) Puts(values []interface{}) (puts, count uint32) {
 	getPos := q.getPos.Load()
 	putPos := q.putPos.Load()
 
@@ -313,7 +313,7 @@ func (q *LFQueue) Puts(values []interface{}) (puts, count uint32) {
 	return putCnt, cnt + putCnt
 }
 
-func (q *LFQueue) canPut(posNew uint32, cache *slot) bool {
+func (q *EsQueue) canPut(posNew uint32, cache *slot) bool {
 	getID := cache.getID.Load()
 	putID := cache.putID.Load()
 
@@ -321,17 +321,17 @@ func (q *LFQueue) canPut(posNew uint32, cache *slot) bool {
 	return posNew == putID && getID == putID
 }
 
-func (q *LFQueue) canGet(getPosNew uint32, cache *slot) bool {
+func (q *EsQueue) canGet(getPosNew uint32, cache *slot) bool {
 	getID := cache.getID.Load()
 	putID := cache.putID.Load()
 	return getPosNew == getID && (getID+q.capacity == putID)
 }
 
-func (q *LFQueue) isFull() bool {
+func (q *EsQueue) isFull() bool {
 	return q.Count() >= q.capMod-1
 }
 
-func (q *LFQueue) posCount(getPos, putPos uint32) uint32 {
+func (q *EsQueue) posCount(getPos, putPos uint32) uint32 {
 	if putPos >= getPos {
 		return putPos - getPos
 	}
